@@ -6,7 +6,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor
 
 # ⚠️ Apna Bot Token yahan dalein
-BOT_TOKEN = "7818601229:AAHzgOQYaAulQ_GsB8YdZbzjWLW_a48Y974"
+BOT_TOKEN = "8385538981:AAFiFcdmvuSUr7G_JqWt67fy2EMkkiCmwdU"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # ULTRA HIGH-SPEED PAID HTTP ROTATING ENGINE
