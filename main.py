@@ -4,30 +4,37 @@ import random
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 
+# Aap ka trading channel username
 CHANNEL_USERNAME = "Gold_Expert_Fx77" 
 
-# PACKED SOCKS5 PROTOCOL WITH PORT 10000 (For Webshare Premium Auth)
-PROXY_URL = "socks5://qkhaljvp:zadw5l3s9igx@p.webshare.io:10000/"
+# ULTRA HIGH-SPEED PAID HTTP ROTATING ENGINE (Port 80)
+PROXY_URL = "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"
 PROXY_DICT = {
     "http": PROXY_URL,
     "https": PROXY_URL
 }
 
 def get_recent_post_ids():
+    """Direct channel monitoring tool for bypass lag"""
     url = f"https://t.me/s/{CHANNEL_USERNAME}"
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        # Paid Socks5 proxy ke zariye monitoring
-        r = requests.get(url, headers=headers, proxies=PROXY_DICT, timeout=6)
+        headers = {
+            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
+        # Direct fetch to ensure 100% up-time on signal detection
+        r = requests.get(url, headers=headers, timeout=6)
         soup = BeautifulSoup(r.text, 'html.parser')
         posts = soup.find_all('div', class_='tgme_widget_message')
         if posts:
             return [int(p.get('data-post').split('/')[-1]) for p in posts[-5:] if p.get('data-post')]
     except Exception as e:
-        print(f"❌ Error monitoring channel: {e}", flush=True)
+        print(f"❌ Error scanning channel: {e}", flush=True)
     return []
 
 def hit_view_worker(post_id):
+    """Paid Premium Request Fire Unit"""
     embed_url = f"https://t.me/{CHANNEL_USERNAME}/{post_id}?embed=1"
     headers = {
         'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
@@ -35,6 +42,7 @@ def hit_view_worker(post_id):
         'Connection': 'close'
     }
     try:
+        # Webshare paid rotating proxy handling execution
         r = requests.get(embed_url, proxies=PROXY_DICT, headers=headers, timeout=4)
         if r.status_code == 200 and "views" in r.text:
             return True
@@ -43,6 +51,7 @@ def hit_view_worker(post_id):
     return False
 
 def fire_fast_views(post_id, target_views, threads=40):
+    """Parallel Processing Pipeline"""
     success_count = 0
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(hit_view_worker, post_id) for _ in range(target_views * 2)]
@@ -55,7 +64,7 @@ def fire_fast_views(post_id, target_views, threads=40):
 
 def main():
     print("======================================================", flush=True)
-    print("💎 PREMIUM SOCKS5 ROTATING ENGINE v2.0 LIVE", flush=True)
+    print("💎 PREMIUM HTTP ROTATING ENGINE v3.0 LIVE", flush=True)
     print(f"📈 Target Channel: @{CHANNEL_USERNAME}", flush=True)
     print("======================================================", flush=True)
     
@@ -71,22 +80,23 @@ def main():
             
         latest_id = current_posts[-1]
         
-        # 🚨 NEW SIGNAL INBOUND
+        # 🚨 TRIGGER: Nayi Post / Signal Aate Hi Multi-Thread Priority Attack!
         if latest_id > last_known_latest_id:
             print(f"🚨 NEW SIGNAL DETECTED: Post ID {latest_id}", flush=True)
             print("⚡ Launching Instant Premium Blast...", flush=True)
             last_known_latest_id = latest_id
             
-            # Fast delivery
-            sent_instant = fire_fast_views(latest_id, 55, threads=40)
+            # Phase 1: Pehle 10-15 seconds mein ~50 views push karna
+            sent_instant = fire_fast_views(latest_id, 55, threads=45)
             print(f"💥 Delivered {sent_instant} views instantly to New Post.", flush=True)
             
-            time.sleep(3)
+            # Phase 2: Agle thode der mein views scale up karna
+            time.sleep(2)
             sent_momentum = fire_fast_views(latest_id, 100, threads=15)
             channel_history_tracker[latest_id] = sent_instant + sent_momentum
             continue
             
-        # 💤 ECOSYSTEM BALANCE
+        # 💤 BACKEND SYNC: Old aur Yesterday posts ka structure balancing
         print("📊 Balancing Channel Grid (Old & Yesterday Posts)...", flush=True)
         for pid in current_posts:
             is_latest = (pid == latest_id)
@@ -97,7 +107,7 @@ def main():
                 continue
                 
             chunk = random.randint(25, 50)
-            sent = fire_fast_views(pid, chunk, threads=10)
+            sent = fire_fast_views(pid, chunk, threads=12)
             channel_history_tracker[pid] = current_sent + sent
             print(f" -> Post {pid}: Total Views Status [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
             time.sleep(5)
