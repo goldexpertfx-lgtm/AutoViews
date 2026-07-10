@@ -2,74 +2,54 @@ import requests
 import time
 import random
 from bs4 import BeautifulSoup
-import re
 from concurrent.futures import ThreadPoolExecutor
 
-CHANNEL_USERNAME = "Gold_Expert_Fx77"
+CHANNEL_USERNAME = "Gold_Expert_Fx77" # Real channel ke liye badal kar "Gold_Expert_Fx" kar dein
 
-def clean_proxy_list(raw_proxies):
-    cleaned = []
-    for proxy in raw_proxies:
-        proxy = proxy.strip()
-        if proxy and not proxy.startswith('#'):
-            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+', proxy):
-                cleaned.append(proxy)
-    return list(set(cleaned))
-
-def get_ultra_proxy_pool():
-    proxies = []
-    urls = [
-        "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=3000&country=all&ssl=all&anonymity=all",
-        "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-        "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
-        "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt"
-    ]
-    for url in urls:
-        try:
-            r = requests.get(url, timeout=4)
-            if r.status_code == 200: proxies.extend(r.text.splitlines())
-        except: continue
-    return clean_proxy_list(proxies)
+# Webshare Paid Proxy Configuration
+PROXY_URL = "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"
+PROXY_DICT = {
+    "http": PROXY_URL,
+    "https": PROXY_URL
+}
 
 def get_recent_post_ids():
     url = f"https://t.me/s/{CHANNEL_USERNAME}"
     try:
-        # Har dafa browser signature tabdeel hoga taake Telegram block na kare
-        headers = {
-            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(500,600)}.36',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        }
-        r = requests.get(url, headers=headers, timeout=6)
-        if r.status_code == 429:
-            print("⚠️ Telegram ne Render IP ko Temporary Limit kiya hai. Free proxies use kar raha hoon bypass ke liye...", flush=True)
-            return []
+        # Paid proxy ke zariye channel check karein taake Telegram Render ko block na kare
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        r = requests.get(url, headers=headers, proxies=PROXY_DICT, timeout=5)
         soup = BeautifulSoup(r.text, 'html.parser')
         posts = soup.find_all('div', class_='tgme_widget_message')
         if posts:
             return [int(p.get('data-post').split('/')[-1]) for p in posts[-5:] if p.get('data-post')]
-    except: pass
+    except Exception as e:
+        print(f"❌ Error monitoring channel: {e}", flush=True)
     return []
 
-def hit_view_worker(post_id, proxy):
-    proxy_dict = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
+def hit_view_worker(post_id):
+    """Paid proxy worker - Har hit par Webshare khud IP rotate karega"""
     embed_url = f"https://t.me/{CHANNEL_USERNAME}/{post_id}?embed=1"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': f'https://t.me/s/{CHANNEL_USERNAME}'
+        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
+        'Referer': f'https://t.me/s/{CHANNEL_USERNAME}',
+        'Connection': 'close'
     }
     try:
-        r = requests.get(embed_url, proxies=proxy_dict, headers=headers, timeout=2.0)
+        # Requests paid proxy ke through ja rahi hain
+        r = requests.get(embed_url, proxies=PROXY_DICT, headers=headers, timeout=3)
         if r.status_code == 200 and "views" in r.text:
             return True
-    except: pass
+    except:
+        pass
     return False
 
-def fire_fast_views(post_id, target_views, proxy_pool, workers_count=70):
-    random.shuffle(proxy_pool)
+def fire_fast_views(post_id, target_views, threads=40):
+    """Parallel Threading Engine for Premium Proxies"""
     success_count = 0
-    with ThreadPoolExecutor(max_workers=workers_count) as executor:
-        futures = [executor.submit(hit_view_worker, post_id, proxy) for proxy in proxy_pool[:target_views * 5]]
+    # Ek sath multiple requests jayengi premium IPs se
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = [executor.submit(hit_view_worker, post_id) for _ in range(target_views * 2)]
         for fut in futures:
             if fut.result():
                 success_count += 1
@@ -79,55 +59,60 @@ def fire_fast_views(post_id, target_views, proxy_pool, workers_count=70):
 
 def main():
     print("======================================================", flush=True)
-    print("⚡ HYPER-DRIVE PRIORITIZED TRADING ENGINE v4 (ANTI-LOCK)", flush=True)
+    print("💎 PREMIUM WEBSHARE ROTATING ENGINE v1.0 LIVE", flush=True)
+    print(f"📈 Target Channel: @{CHANNEL_USERNAME}", flush=True)
     print("======================================================", flush=True)
     
-    # Starting setup
     post_ids = get_recent_post_ids()
-    if post_ids:
-        last_known_latest_id = post_ids[-1]
-    else:
-        # Agar block ho to safe guess pichli settings se uthaye
-        last_known_latest_id = 1325 
-        
+    last_known_latest_id = post_ids[-1] if post_ids else 0
     channel_history_tracker = {}
     
     while True:
         current_posts = get_recent_post_ids()
-        
-        # Fallback mechanism: Agar telegram page response na de to last ID ko monitor karte raho auto-incremented guess se
         if not current_posts:
-            print("🔗 Scanner scanning via sequential guess pipeline...", flush=True)
-            current_posts = [last_known_latest_id, last_known_latest_id + 1]
+            time.sleep(10)
+            continue
             
         latest_id = current_posts[-1]
         
+        # 🚨 NEW SIGNAL: Nayi post aate hi sab chhor kar instant blast!
         if latest_id > last_known_latest_id:
-            print(f"🚨 NEW SIGNAL TRIGGERED IN PIPELINE (ID: {latest_id})!", flush=True)
+            print(f"🚨 NEW SIGNAL DETECTED: Post ID {latest_id}", flush=True)
+            print("⚡ Launching Instant Premium Blast (Target: 50 Fast Views)...", flush=True)
             last_known_latest_id = latest_id
             
-            pool = get_ultra_proxy_pool()
-            sent_instant = fire_fast_views(latest_id, 80, pool, workers_count=70)
-            print(f"💥 Delivered {sent_instant} views instantly to New Post {latest_id}.", flush=True)
-            channel_history_tracker[latest_id] = sent_instant
+            # Shuruati 10-15 seconds mein 50 views ka jhatka (High Threads)
+            sent_instant = fire_fast_views(latest_id, 55, threads=40)
+            print(f"💥 Instant 15s Wave Done! Delivered {sent_instant} views.", flush=True)
+            
+            # Agle 5 mints mein mazeed views ka top-up (Slower Threads)
+            print("⏳ Maintaining momentum to reach 150 views target...", flush=True)
+            time.sleep(3)
+            sent_momentum = fire_fast_views(latest_id, 100, threads=15)
+            
+            channel_history_tracker[latest_id] = sent_instant + sent_momentum
             continue
             
-        print("📊 Updating channel matrix elements...", flush=True)
-        pool = get_ultra_proxy_pool()
-        
-        for pid in current_posts[-3:]: # Sirf top 3 par focused rakhein taake system load kam ho
-            ultimate_target = random.randint(600, 900) if pid == latest_id else random.randint(1500, 1900)
+        # 💤 BACKGROUND MANAGEMENT (Purani aur kal ki posts ko manage karna)
+        print("📊 Balancing Channel Grid (Old & Yesterday Posts)...", flush=True)
+        for pid in current_posts:
+            is_latest = (pid == latest_id)
+            ultimate_target = random.randint(650, 850) if is_latest else random.randint(1700, 2100)
+            
             current_sent = channel_history_tracker.get(pid, 0)
-            
-            if current_sent >= ultimate_target: continue
+            if current_sent >= ultimate_target:
+                continue
                 
-            sent = fire_fast_views(pid, random.randint(40, 70), pool, workers_count=35)
+            # Aahista aahista views barhana
+            chunk = random.randint(25, 50)
+            sent = fire_fast_views(pid, chunk, threads=10)
             channel_history_tracker[pid] = current_sent + sent
-            print(f" -> Post {pid}: Overall [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
-            time.sleep(4)
+            print(f" -> Post {pid}: Total Views Status [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
+            time.sleep(5)
             
-        time.sleep(15)
+        print("⏳ Scan cycle done. Checking for new posts in 10 seconds...", flush=True)
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()
-        
+    
