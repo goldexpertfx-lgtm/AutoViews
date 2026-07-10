@@ -3,8 +3,9 @@ import time
 import random
 from bs4 import BeautifulSoup
 import re
+from concurrent.futures import ThreadPoolExecutor
 
-CHANNEL_USERNAME = "Gold_Expert_Fx77" # Testing channel name
+CHANNEL_USERNAME = "Gold_Expert_Fx77" # Real channel ke liye badal kar "Gold_Expert_Fx" kar dein
 
 def clean_proxy_list(raw_proxies):
     cleaned = []
@@ -15,137 +16,118 @@ def clean_proxy_list(raw_proxies):
                 cleaned.append(proxy)
     return list(set(cleaned))
 
-def get_high_quality_free_proxies():
-    print("🔄 Fetching fresh proxies pool...", flush=True)
+def get_ultra_proxy_pool():
     proxies = []
     urls = [
-        "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all",
+        "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=4000&country=all&ssl=all&anonymity=all",
         "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-        "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"
+        "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+        "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt"
     ]
     for url in urls:
         try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-            response = requests.get(url, headers=headers, timeout=5)
-            if response.status_code == 200:
-                proxies.extend(response.text.splitlines())
-        except:
-            continue
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=4)
+            if r.status_code == 200: proxies.extend(r.text.splitlines())
+        except: continue
     return clean_proxy_list(proxies)
 
 def get_recent_post_ids():
     url = f"https://t.me/s/{CHANNEL_USERNAME}"
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        r = requests.get(url, headers=headers, timeout=8)
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=6)
         soup = BeautifulSoup(r.text, 'html.parser')
         posts = soup.find_all('div', class_='tgme_widget_message')
         if posts:
-            return [int(p.get('data-post').split('/')[-1]) for p in posts[-4:] if p.get('data-post')]
-    except Exception as e:
-        print(f"❌ Error fetching posts: {e}", flush=True)
+            return [int(p.get('data-post').split('/')[-1]) for p in posts[-5:] if p.get('data-post')]
+    except: pass
     return []
 
-def hit_view(post_id, proxy):
+def hit_view_worker(post_id, proxy):
+    """Single fast worker for threading"""
     proxy_dict = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
     embed_url = f"https://t.me/{CHANNEL_USERNAME}/{post_id}?embed=1"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Referer': f'https://t.me/s/{CHANNEL_USERNAME}'
-    }
     try:
-        r = requests.get(embed_url, proxies=proxy_dict, headers=headers, timeout=3)
+        r = requests.get(embed_url, proxies=proxy_dict, headers={'User-Agent': 'Mozilla/5.0'}, timeout=2.5)
         if r.status_code == 200 and "views" in r.text:
             return True
-    except:
-        pass
+    except: pass
     return False
+
+def fire_fast_views(post_id, target_views, proxy_pool):
+    """ThreadPoolExecutor to force views instantly within seconds"""
+    random.shuffle(proxy_pool)
+    success_count = 0
+    
+    # 50 Parallel threads aik sath fire hongi bullet speed ki tarah
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        futures = [executor.submit(hit_view_worker, post_id, proxy) for proxy in proxy_pool[:target_views * 3]]
+        for fut in futures:
+            if fut.result():
+                success_count += 1
+                if success_count >= target_views:
+                    break
+    return success_count
 
 def main():
     print("======================================================", flush=True)
-    print("🚀 PRIORITY TRADING ENGINE ACTIVE ON RENDER PREMIUM", flush=True)
-    print(f"📈 Target Channel: @{CHANNEL_USERNAME}", flush=True)
+    print("⚡ HYPER-DRIVE 50-THREAD TRADING ENGINE LIVE ON RENDER", flush=True)
+    print(f"📈 Monitoring Channel: @{CHANNEL_USERNAME}", flush=True)
     print("======================================================", flush=True)
     
-    # Pehle round mein posts map taiyar karna
     post_ids = get_recent_post_ids()
     last_known_latest_id = post_ids[-1] if post_ids else 0
-    
-    # Base targets setup
-    # Key: post_id, Value: [current_views_sent, max_target_needed]
-    views_tracker = {}
+    channel_history_tracker = {} # Har post ka permanent views counter
     
     while True:
-        # 1. Har round ke start mein check karein ke koi nayi post to nahi aayi?
         current_posts = get_recent_post_ids()
         if not current_posts:
-            time.sleep(15)
+            time.sleep(5)
             continue
             
-        latest_post_id = current_posts[-1]
+        latest_id = current_posts[-1]
         
-        # 🚨 ALERT: Agar nayi post detect ho jaye!
-        if latest_post_id > last_known_latest_id:
-            print(f"🚨 ALERT: New Trading Signal Detected! (ID: {latest_post_id})", flush=True)
-            print("⚡ Pausing old tasks. Shifting 100% focus to New Post!", flush=True)
-            last_known_latest_id = latest_post_id
+        # 🚨 TRIGGER: Nayi Post Detect Hote Hi Instant Attack!
+        if latest_id > last_known_latest_id:
+            print(f"🚨 NEW SIGNAL DETECTED (ID: {latest_id})! Launching Instant 50-Thread Blast...", flush=True)
+            last_known_latest_id = latest_id
             
-            # Nayi post ko highest priority target dena (600-850 views)
-            views_tracker[latest_post_id] = [0, random.randint(600, 850)]
+            # Fresh proxies for instant delivery
+            pool = get_ultra_proxy_pool()
             
-            # --- INSTANT RUSH LOOP FOR NEW POST ---
-            proxies = get_high_quality_free_proxies()
-            random.shuffle(proxies)
+            # Immediate target: 150 views within first 3-5 minutes
+            sent = fire_fast_views(latest_id, 160, pool)
+            print(f"💥 Instant Blast Complete! Delivered {sent} views to New Post {latest_id} within seconds.", flush=True)
+            channel_history_tracker[latest_id] = sent
+            continue # Skip normal routine to stay safe
             
-            print(f"🔥 Phase 1 (Signal Rush): Sending fast views to {latest_post_id}...", flush=True)
-            for proxy in proxies:
-                if views_tracker[latest_post_id][0] >= views_tracker[latest_post_id][1]:
-                    break # Target complete
-                    
-                if hit_view(latest_post_id, proxy):
-                    views_tracker[latest_post_id][0] += 1
-                    if views_tracker[latest_post_id][0] % 50 == 0:
-                        print(f"💥 New Post {latest_post_id} -> Live Views: {views_tracker[latest_post_id][0]}/{views_tracker[latest_post_id][1]}", flush=True)
-                    time.sleep(random.uniform(1.5, 3.5)) # Fast delivery gap
-            
-            print(f"✅ Phase 1 Done for New Post {latest_post_id}. Shifting back to multi-tasking.", flush=True)
-
-        # 2. SLOW BACKGROUND WAVE (For all recent 4 posts)
-        # Tracker update for older posts if not exists
+        # 💤 NORMAL ECOSYSTEM MANAGEMENT (Yesterday & Past Posts)
+        print("📊 Managing Full Channel Ecosystem (New, Old & Yesterday Posts)...", flush=True)
+        pool = get_ultra_proxy_pool()
+        
         for pid in current_posts:
-            if pid not in views_tracker:
-                # Purani posts ka ultimate target 1700-2000 views tak le kar jana hai
-                views_tracker[pid] = [0, random.randint(1700, 2000)]
-        
-        proxies = get_high_quality_free_proxies()
-        random.shuffle(proxies)
-        
-        print("💤 Running Background Top-up for all posts (Slow & Organic)...", flush=True)
-        
-        # Ek cycle mein har post par thode thode views dalna
-        for pid in current_posts:
-            # Agar target poora ho chuka hai to skip karein
-            if views_tracker[pid][0] >= views_tracker[pid][1]:
+            is_latest = (pid == latest_id)
+            
+            # Dynamic Target Setting
+            if is_latest:
+                ultimate_target = random.randint(650, 850) # Today's normal limit
+            else:
+                ultimate_target = random.randint(1700, 2100) # Yesterday / Old post premium layout
+                
+            current_sent = channel_history_tracker.get(pid, 0)
+            
+            if current_sent >= ultimate_target:
                 continue
                 
-            # Har post par is round mein sirf 15-20 views bhejna aur phir agli post par switch hona
-            sub_target = 20
-            views_sent_this_round = 0
+            # Slow incremental push for ecosystem stability
+            chunk_target = random.randint(30, 60)
+            sent = fire_fast_views(pid, chunk_target, pool)
+            channel_history_tracker[pid] = current_sent + sent
+            print(f" -> Post {pid}: Total Views Level reached [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
+            time.sleep(random.uniform(5, 10)) # Natural resting gap between posts
             
-            for proxy in proxies:
-                if views_sent_this_round >= sub_target or views_tracker[pid][0] >= views_tracker[pid][1]:
-                    break
-                    
-                if hit_view(pid, proxy):
-                    views_tracker[pid][0] += 1
-                    views_sent_this_round += 1
-                    time.sleep(random.uniform(8.0, 15.0)) # Slow top-up gap
-            
-            print(f" -> Post {pid} updated. Total Progress: {views_tracker[pid][0]} Views", flush=True)
-            
-        print("⏳ Fast scanning for any new updates in 15 seconds...", flush=True)
-        time.sleep(15)
+        print("⏳ Scan cycle done. Re-checking for new signals in 10 seconds...", flush=True)
+        time.sleep(10)
 
 if __name__ == "__main__":
     main()
-                
+    
