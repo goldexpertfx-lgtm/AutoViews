@@ -4,18 +4,19 @@ import random
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 
-# Aap ka trading channel username
 CHANNEL_USERNAME = "Gold_Expert_Fx77" 
 
-# ULTRA HIGH-SPEED PAID HTTP ROTATING ENGINE (Port 80)
 PROXY_URL = "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"
 PROXY_DICT = {
     "http": PROXY_URL,
     "https": PROXY_URL
 }
 
+# Persistent memory pools
+channel_history_tracker = {}
+target_caps_tracker = {}
+
 def get_recent_post_ids():
-    """Direct channel monitoring tool for bypass lag"""
     url = f"https://t.me/s/{CHANNEL_USERNAME}"
     try:
         headers = {
@@ -23,7 +24,6 @@ def get_recent_post_ids():
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
         }
-        # Direct fetch to ensure 100% up-time on signal detection
         r = requests.get(url, headers=headers, timeout=6)
         soup = BeautifulSoup(r.text, 'html.parser')
         posts = soup.find_all('div', class_='tgme_widget_message')
@@ -34,7 +34,6 @@ def get_recent_post_ids():
     return []
 
 def hit_view_worker(post_id):
-    """Paid Premium Request Fire Unit"""
     embed_url = f"https://t.me/{CHANNEL_USERNAME}/{post_id}?embed=1"
     headers = {
         'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
@@ -42,7 +41,6 @@ def hit_view_worker(post_id):
         'Connection': 'close'
     }
     try:
-        # Webshare paid rotating proxy handling execution
         r = requests.get(embed_url, proxies=PROXY_DICT, headers=headers, timeout=4)
         if r.status_code == 200 and "views" in r.text:
             return True
@@ -51,7 +49,6 @@ def hit_view_worker(post_id):
     return False
 
 def fire_fast_views(post_id, target_views, threads=40):
-    """Parallel Processing Pipeline"""
     success_count = 0
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(hit_view_worker, post_id) for _ in range(target_views * 2)]
@@ -64,13 +61,12 @@ def fire_fast_views(post_id, target_views, threads=40):
 
 def main():
     print("======================================================", flush=True)
-    print("💎 PREMIUM HTTP ROTATING ENGINE v3.0 LIVE", flush=True)
+    print("💎 PREMIUM HTTP ROTATING ENGINE v3.1 LIVE", flush=True)
     print(f"📈 Target Channel: @{CHANNEL_USERNAME}", flush=True)
     print("======================================================", flush=True)
     
     post_ids = get_recent_post_ids()
     last_known_latest_id = post_ids[-1] if post_ids else 0
-    channel_history_tracker = {}
     
     while True:
         current_posts = get_recent_post_ids()
@@ -80,41 +76,39 @@ def main():
             
         latest_id = current_posts[-1]
         
-        # 🚨 TRIGGER: Nayi Post / Signal Aate Hi Multi-Thread Priority Attack!
         if latest_id > last_known_latest_id:
             print(f"🚨 NEW SIGNAL DETECTED: Post ID {latest_id}", flush=True)
-            print("⚡ Launching Instant Premium Blast...", flush=True)
             last_known_latest_id = latest_id
             
-            # Phase 1: Pehle 10-15 seconds mein ~50 views push karna
-            sent_instant = fire_fast_views(latest_id, 55, threads=45)
-            print(f"💥 Delivered {sent_instant} views instantly to New Post.", flush=True)
-            
-            # Phase 2: Agle thode der mein views scale up karna
-            time.sleep(2)
-            sent_momentum = fire_fast_views(latest_id, 100, threads=15)
-            channel_history_tracker[latest_id] = sent_instant + sent_momentum
+            sent_instant = fire_fast_views(latest_id, 60, threads=45)
+            channel_history_tracker[latest_id] = channel_history_tracker.get(latest_id, 0) + sent_instant
+            print(f"💥 Delivered {sent_instant} instant views to New Post.", flush=True)
             continue
             
-        # 💤 BACKEND SYNC: Old aur Yesterday posts ka structure balancing
-        print("📊 Balancing Channel Grid (Old & Yesterday Posts)...", flush=True)
+        print("📊 Balancing Channel Grid...", flush=True)
         for pid in current_posts:
             is_latest = (pid == latest_id)
-            ultimate_target = random.randint(650, 850) if is_latest else random.randint(1700, 2100)
             
+            # Set permanent cap for the session so it doesn't shuffle every 10 seconds
+            if pid not in target_caps_tracker:
+                target_caps_tracker[pid] = random.randint(650, 850) if is_latest else random.randint(1700, 2100)
+                
+            ultimate_target = target_caps_tracker[pid]
             current_sent = channel_history_tracker.get(pid, 0)
+            
             if current_sent >= ultimate_target:
                 continue
                 
-            chunk = random.randint(25, 50)
-            sent = fire_fast_views(pid, chunk, threads=12)
+            chunk = random.randint(30, 60)
+            sent = fire_fast_views(pid, chunk, threads=15)
             channel_history_tracker[pid] = current_sent + sent
-            print(f" -> Post {pid}: Total Views Status [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
-            time.sleep(5)
             
-        print("⏳ Scan cycle done. Checking for new posts in 10 seconds...", flush=True)
+            print(f" -> Post {pid}: Added +{sent} Views. Status [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
+            time.sleep(3)
+            
+        print("⏳ Cycle complete. Re-checking in 10s...", flush=True)
         time.sleep(10)
 
 if __name__ == "__main__":
     main()
-                    
+                
