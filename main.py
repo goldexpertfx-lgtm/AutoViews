@@ -3,7 +3,7 @@ import time
 import random
 from bs4 import BeautifulSoup
 
-CHANNEL_USERNAME = "https://t.me/Gold_Expert_Fx77"
+CHANNEL_USERNAME = "Gold_Expert_Fx77"
 
 def get_free_proxies():
     url = "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
