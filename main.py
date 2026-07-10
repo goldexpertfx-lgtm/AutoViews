@@ -4,10 +4,10 @@ import random
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 
-CHANNEL_USERNAME = "Gold_Expert_Fx77" # Real channel ke liye badal kar "Gold_Expert_Fx" kar dein
+CHANNEL_USERNAME = "Gold_Expert_Fx77" 
 
-# Webshare Paid Proxy Configuration
-PROXY_URL = "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"
+# PACKED SOCKS5 PROTOCOL WITH PORT 10000 (For Webshare Premium Auth)
+PROXY_URL = "socks5://qkhaljvp:zadw5l3s9igx@p.webshare.io:10000/"
 PROXY_DICT = {
     "http": PROXY_URL,
     "https": PROXY_URL
@@ -16,9 +16,9 @@ PROXY_DICT = {
 def get_recent_post_ids():
     url = f"https://t.me/s/{CHANNEL_USERNAME}"
     try:
-        # Paid proxy ke zariye channel check karein taake Telegram Render ko block na kare
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        r = requests.get(url, headers=headers, proxies=PROXY_DICT, timeout=5)
+        # Paid Socks5 proxy ke zariye monitoring
+        r = requests.get(url, headers=headers, proxies=PROXY_DICT, timeout=6)
         soup = BeautifulSoup(r.text, 'html.parser')
         posts = soup.find_all('div', class_='tgme_widget_message')
         if posts:
@@ -28,7 +28,6 @@ def get_recent_post_ids():
     return []
 
 def hit_view_worker(post_id):
-    """Paid proxy worker - Har hit par Webshare khud IP rotate karega"""
     embed_url = f"https://t.me/{CHANNEL_USERNAME}/{post_id}?embed=1"
     headers = {
         'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
@@ -36,8 +35,7 @@ def hit_view_worker(post_id):
         'Connection': 'close'
     }
     try:
-        # Requests paid proxy ke through ja rahi hain
-        r = requests.get(embed_url, proxies=PROXY_DICT, headers=headers, timeout=3)
+        r = requests.get(embed_url, proxies=PROXY_DICT, headers=headers, timeout=4)
         if r.status_code == 200 and "views" in r.text:
             return True
     except:
@@ -45,9 +43,7 @@ def hit_view_worker(post_id):
     return False
 
 def fire_fast_views(post_id, target_views, threads=40):
-    """Parallel Threading Engine for Premium Proxies"""
     success_count = 0
-    # Ek sath multiple requests jayengi premium IPs se
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(hit_view_worker, post_id) for _ in range(target_views * 2)]
         for fut in futures:
@@ -59,7 +55,7 @@ def fire_fast_views(post_id, target_views, threads=40):
 
 def main():
     print("======================================================", flush=True)
-    print("💎 PREMIUM WEBSHARE ROTATING ENGINE v1.0 LIVE", flush=True)
+    print("💎 PREMIUM SOCKS5 ROTATING ENGINE v2.0 LIVE", flush=True)
     print(f"📈 Target Channel: @{CHANNEL_USERNAME}", flush=True)
     print("======================================================", flush=True)
     
@@ -75,25 +71,22 @@ def main():
             
         latest_id = current_posts[-1]
         
-        # 🚨 NEW SIGNAL: Nayi post aate hi sab chhor kar instant blast!
+        # 🚨 NEW SIGNAL INBOUND
         if latest_id > last_known_latest_id:
             print(f"🚨 NEW SIGNAL DETECTED: Post ID {latest_id}", flush=True)
-            print("⚡ Launching Instant Premium Blast (Target: 50 Fast Views)...", flush=True)
+            print("⚡ Launching Instant Premium Blast...", flush=True)
             last_known_latest_id = latest_id
             
-            # Shuruati 10-15 seconds mein 50 views ka jhatka (High Threads)
+            # Fast delivery
             sent_instant = fire_fast_views(latest_id, 55, threads=40)
-            print(f"💥 Instant 15s Wave Done! Delivered {sent_instant} views.", flush=True)
+            print(f"💥 Delivered {sent_instant} views instantly to New Post.", flush=True)
             
-            # Agle 5 mints mein mazeed views ka top-up (Slower Threads)
-            print("⏳ Maintaining momentum to reach 150 views target...", flush=True)
             time.sleep(3)
             sent_momentum = fire_fast_views(latest_id, 100, threads=15)
-            
             channel_history_tracker[latest_id] = sent_instant + sent_momentum
             continue
             
-        # 💤 BACKGROUND MANAGEMENT (Purani aur kal ki posts ko manage karna)
+        # 💤 ECOSYSTEM BALANCE
         print("📊 Balancing Channel Grid (Old & Yesterday Posts)...", flush=True)
         for pid in current_posts:
             is_latest = (pid == latest_id)
@@ -103,7 +96,6 @@ def main():
             if current_sent >= ultimate_target:
                 continue
                 
-            # Aahista aahista views barhana
             chunk = random.randint(25, 50)
             sent = fire_fast_views(pid, chunk, threads=10)
             channel_history_tracker[pid] = current_sent + sent
