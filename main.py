@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import os
 
 # Apne channel ka username bina '@' ke yahan likhein
-CHANNEL_USERNAME = "AapKeChannelKaUsername" 
+CHANNEL_USERNAME = "https://t.me/+RhZM4ViEPmYwMmQ1" 
 MIN_VIEWS = 500
 MAX_VIEWS = 700
 
