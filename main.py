@@ -1,43 +1,31 @@
+import telebot
 import requests
 import time
 import random
-from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 
-CHANNEL_USERNAME = "Gold_Expert_Fx77" 
+# ⚠️ Apna Bot Token yahan dalein jo BotFather se milega
+BOT_TOKEN = "7818601229:AAHzgOQYaAulQ_GsB8YdZbzjWLW_a48Y974"
+bot = telebot.TeleBot(BOT_TOKEN)
 
+# ULTRA HIGH-SPEED PAID HTTP ROTATING ENGINE
 PROXY_URL = "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"
 PROXY_DICT = {
     "http": PROXY_URL,
     "https": PROXY_URL
 }
 
-# Persistent memory pools
+# Channels ko track karne ke liye memory pool
 channel_history_tracker = {}
-target_caps_tracker = {}
 
-def get_recent_post_ids():
-    url = f"https://t.me/s/{CHANNEL_USERNAME}"
-    try:
-        headers = {
-            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        }
-        r = requests.get(url, headers=headers, timeout=6)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        posts = soup.find_all('div', class_='tgme_widget_message')
-        if posts:
-            return [int(p.get('data-post').split('/')[-1]) for p in posts[-5:] if p.get('data-post')]
-    except Exception as e:
-        print(f"❌ Error scanning channel: {e}", flush=True)
-    return []
-
-def hit_view_worker(post_id):
-    embed_url = f"https://t.me/{CHANNEL_USERNAME}/{post_id}?embed=1"
+def hit_view_worker(channel_username, message_id):
+    """Paid Premium Request Fire Unit"""
+    # Agar channel private hai to username '-100xxxxxx' form mein hota hai, uski link alag banti hai
+    clean_username = str(channel_username).replace("-100", "c/") if str(channel_username).startswith("-100") else channel_username
+    
+    embed_url = f"https://t.me/{clean_username}/{message_id}?embed=1"
     headers = {
         'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/{random.randint(530,600)}.36',
-        'Referer': f'https://t.me/s/{CHANNEL_USERNAME}',
         'Connection': 'close'
     }
     try:
@@ -48,10 +36,11 @@ def hit_view_worker(post_id):
         pass
     return False
 
-def fire_fast_views(post_id, target_views, threads=40):
+def fire_fast_views(channel_username, message_id, target_views, threads=35):
+    """Parallel Thread Processing"""
     success_count = 0
     with ThreadPoolExecutor(max_workers=threads) as executor:
-        futures = [executor.submit(hit_view_worker, post_id) for _ in range(target_views * 2)]
+        futures = [executor.submit(hit_view_worker, channel_username, message_id) for _ in range(target_views * 2)]
         for fut in futures:
             if fut.result():
                 success_count += 1
@@ -59,56 +48,41 @@ def fire_fast_views(post_id, target_views, threads=40):
                     break
     return success_count
 
+# 🚨 TRIGGER: Bot jis channel mein bhi admin hoga, wahan nayi post aate hi yeh function automatic chalaiga
+@bot.channel_post_handler(func=lambda message: True)
+def handle_new_post(message):
+    chat_id = message.chat.id
+    message_id = message.message_id
+    channel_name = message.chat.username or message.chat.title
+    
+    print(f"🚨 NEW POST DETECTED via Bot in [{channel_name}] (ID: {message_id})", flush=True)
+    print("⚡ Launching Premium Bot Blast...", flush=True)
+    
+    # Target structure allocation
+    target_username = message.chat.username if message.chat.username else message.chat.id
+    
+    # Phase 1: Instant Views Delivery
+    sent = fire_fast_views(target_username, message_id, 70, threads=40)
+    print(f"💥 Delivered {sent} views instantly to {channel_name} post {message_id}.", flush=True)
+    
+    # Background momentum loops (Optional balancing)
+    time.sleep(2)
+    fire_fast_views(target_username, message_id, 150, threads=15)
+
 def main():
     print("======================================================", flush=True)
-    print("💎 PREMIUM HTTP ROTATING ENGINE v3.1 LIVE", flush=True)
-    print(f"📈 Target Channel: @{CHANNEL_USERNAME}", flush=True)
+    print("🤖 MULTI-CHANNEL SMART TELEGRAM BOT ENGINE LIVE", flush=True)
+    print("🛡️ Private Channels & Multi-User Support Enabled")
     print("======================================================", flush=True)
     
-    post_ids = get_recent_post_ids()
-    last_known_latest_id = post_ids[-1] if post_ids else 0
-    
+    # Bot polling start (Render par hamesha live rahega aur events sunta rahega)
     while True:
-        current_posts = get_recent_post_ids()
-        if not current_posts:
-            time.sleep(10)
-            continue
-            
-        latest_id = current_posts[-1]
-        
-        if latest_id > last_known_latest_id:
-            print(f"🚨 NEW SIGNAL DETECTED: Post ID {latest_id}", flush=True)
-            last_known_latest_id = latest_id
-            
-            sent_instant = fire_fast_views(latest_id, 60, threads=45)
-            channel_history_tracker[latest_id] = channel_history_tracker.get(latest_id, 0) + sent_instant
-            print(f"💥 Delivered {sent_instant} instant views to New Post.", flush=True)
-            continue
-            
-        print("📊 Balancing Channel Grid...", flush=True)
-        for pid in current_posts:
-            is_latest = (pid == latest_id)
-            
-            # Set permanent cap for the session so it doesn't shuffle every 10 seconds
-            if pid not in target_caps_tracker:
-                target_caps_tracker[pid] = random.randint(650, 850) if is_latest else random.randint(1700, 2100)
-                
-            ultimate_target = target_caps_tracker[pid]
-            current_sent = channel_history_tracker.get(pid, 0)
-            
-            if current_sent >= ultimate_target:
-                continue
-                
-            chunk = random.randint(30, 60)
-            sent = fire_fast_views(pid, chunk, threads=15)
-            channel_history_tracker[pid] = current_sent + sent
-            
-            print(f" -> Post {pid}: Added +{sent} Views. Status [{channel_history_tracker[pid]}/{ultimate_target}]", flush=True)
-            time.sleep(3)
-            
-        print("⏳ Cycle complete. Re-checking in 10s...", flush=True)
-        time.sleep(10)
+        try:
+            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+        except Exception as e:
+            print(f"⚠️ Bot network glitch, restarting socket... Error: {e}", flush=True)
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
-                
+    
