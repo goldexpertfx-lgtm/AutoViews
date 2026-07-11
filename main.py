@@ -5,24 +5,13 @@ import random
 import re
 from concurrent.futures import ThreadPoolExecutor
 
-# ⚠️ Apna Bot Token yahan dalein
+# ⚠️ Apna Bot Token aur Fresh Proxy yahan dalein
 BOT_TOKEN = "8385538981:AAFiFcdmvuSUr7G_JqWt67fy2EMkkiCmwdU"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-fallback_proxies = []
-
-def refresh_public_proxy_pool():
-    global fallback_proxies
-    try:
-        # TRADING SPEED UP: Fetching multiple high-speed lists
-        res = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=2000&country=all&ssl=all&anonymity=all", timeout=8)
-        if res.status_code == 200 and len(res.text) > 100:
-            fallback_proxies = [p.strip() for p in res.text.split("\n") if p.strip()]
-            print(f"🔄 [SIGNAL ENGINE] Loaded {len(fallback_proxies)} high-speed proxy pipelines.", flush=True)
-    except Exception as e:
-        print(f"⚠️ Proxy Scraper Note: {e}", flush=True)
-
-refresh_public_proxy_pool()
+# 🚀 PREMIUM ROTATING PROXY ONLY (Dashboard se fresh proxies le kar yahan dalein)
+PROXY_URL = "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"
+PROXY_DICT = {"http": PROXY_URL, "https": PROXY_URL}
 
 channel_configs = {}
 delivered_views_tracker = {}
@@ -32,10 +21,9 @@ def get_channel_subscriber_count(chat_id):
         count = bot.get_chat_member_count(chat_id)
         return count if count > 0 else 1000
     except:
-        return 10430  # Baseline current sub count
+        return 10430
 
 def hit_view_worker(channel_info):
-    global fallback_proxies
     channel_username, message_id, is_private = channel_info
     
     if is_private:
@@ -46,13 +34,7 @@ def hit_view_worker(channel_info):
         embed_url = f"https://t.me/{clean_username}/{message_id}?embed=1"
         
     session = requests.Session()
-    
-    # 75% Load routed to rapid-fire pool for max delivery
-    if fallback_proxies and random.random() > 0.25:
-        p_ip = random.choice(fallback_proxies)
-        session.proxies = {"http": f"http://{p_ip}", "https": f"http://{p_ip}"}
-    else:
-        session.proxies = {"http": "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/", "https": "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"}
+    session.proxies = PROXY_DICT  # Direct routing via premium pool only
     
     headers = {
         'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(124,126)}.0.0.0 Safari/537.36',
@@ -63,7 +45,7 @@ def hit_view_worker(channel_info):
     }
     
     try:
-        r = session.get(embed_url, headers=headers, timeout=4)
+        r = session.get(embed_url, headers=headers, timeout=3)
         if r.status_code == 200:
             token_match = re.search(r'data-view="([^"]+)"', r.text)
             if token_match:
@@ -76,22 +58,21 @@ def hit_view_worker(channel_info):
                     'Sec-Fetch-Mode': 'cors',
                     'Sec-Fetch-Site': 'same-origin'
                 })
-                res = session.get(f"https://t.me/v/?v={token}", headers=ajax_headers, timeout=3)
+                res = session.get(f"https://t.me/v/?v={token}", headers=ajax_headers, timeout=2)
                 if res.status_code == 200:
                     return True
     except:
         pass
     return False
 
-def fire_percentage_chunk(target_identifier, message_id, is_private, volume, worker_threads=40):
+def fire_percentage_chunk(target_identifier, message_id, is_private, volume, worker_threads=50):
     if volume <= 0:
         return 0
     channel_info = (target_identifier, message_id, is_private)
     success_count = 0
     
-    # TRADING MODE multiplier to push harder
     with ThreadPoolExecutor(max_workers=worker_threads) as executor:
-        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(int(volume * 6))]
+        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(int(volume * 5))]
         for fut in futures:
             if fut.result():
                 success_count += 1
@@ -107,9 +88,7 @@ def handle_incoming_signal(message):
     target_identifier = chat_id if is_private else message.chat.username
     
     sub_count = get_channel_subscriber_count(chat_id)
-    
-    # Trading channels usually get 30% to 40% active views of total subscribers instantly
-    trading_target_percent = random.uniform(30.0, 42.0) / 100.0
+    trading_target_percent = random.uniform(30.0, 40.0) / 100.0
     total_target_views = int(sub_count * trading_target_percent)
     
     channel_configs[chat_id] = {
@@ -119,32 +98,25 @@ def handle_incoming_signal(message):
         'latest_id': message_id
     }
     
-    print(f"📡 [TRADING SIGNAL DETECTED] Target Views: {total_target_views}", flush=True)
+    print(f"📡 [TRADING ENGINE v10] Target: {total_target_views} Views", flush=True)
     
-    # 🔥 Instant Burst: Fires 35% of total target views within first 5 seconds
-    p1_volume = int(total_target_views * 0.35)
-    sent_p1 = fire_percentage_chunk(target_identifier, message_id, is_private, p1_volume, worker_threads=50)
-    print(f"⚡ [INSTANT SIGNAL BURST] Sent (+{sent_p1} views) immediately!", flush=True)
+    # Instant Attack: 40% target instantly via 60 concurrent threads
+    p1_volume = int(total_target_views * 0.40)
+    sent_p1 = fire_percentage_chunk(target_identifier, message_id, is_private, p1_volume, worker_threads=60)
+    print(f"⚡ [INSTANT BURST] Delivered (+{sent_p1} views)", flush=True)
     
     track_key = f"{chat_id}_{message_id}"
     delivered_views_tracker[track_key] = sent_p1
 
 def night_and_grid_audit_loop():
-    proxy_timer = 0
     while True:
         try:
-            proxy_timer += 1
-            if proxy_timer >= 10:
-                refresh_public_proxy_pool()
-                proxy_timer = 0
-                
             for chat_id, config in list(channel_configs.items()):
                 latest_id = config['latest_id']
                 sub_count = config['sub_count']
                 target_id = config['target_identifier']
                 is_private = config['is_private']
                 
-                # Maintain grid sync for last 3 trading posts
                 for msg_id in range(max(1, latest_id - 2), latest_id + 1):
                     track_key = f"{chat_id}_{msg_id}"
                     calculated_cap = int(sub_count * (random.uniform(30, 45) / 100.0))
@@ -153,10 +125,10 @@ def night_and_grid_audit_loop():
                     if current_done >= calculated_cap:
                         continue
                         
-                    chunk_size = random.randint(40, 80)
-                    sent = fire_percentage_chunk(target_id, msg_id, is_private, chunk_size, worker_threads=35)
+                    chunk_size = random.randint(30, 60)
+                    sent = fire_percentage_chunk(target_id, msg_id, is_private, chunk_size, worker_threads=30)
                     delivered_views_tracker[track_key] = current_done + sent
-                    print(f"📊 [Trading Grid Sync] Msg {msg_id} -> Status: [{delivered_views_tracker[track_key]}/{calculated_cap}]", flush=True)
+                    print(f"📊 [Grid Sync] Msg {msg_id} -> Status: [{delivered_views_tracker[track_key]}/{calculated_cap}]", flush=True)
                     time.sleep(3)
         except Exception as e:
             print(f"⚠️ Grid error: {e}", flush=True)
@@ -164,7 +136,7 @@ def night_and_grid_audit_loop():
 
 def main():
     print("======================================================", flush=True)
-    print("🤖 ULTRA BOT ENGINE v9.0 (High-Speed Trading Mode Live)", flush=True)
+    print("🤖 ULTRA BOT ENGINE v10.0 (Premium Dedicated Tunnel)", flush=True)
     print("======================================================", flush=True)
     
     try:
@@ -172,7 +144,7 @@ def main():
         time.sleep(1)
         bot.set_webhook(url="https://localhost/fake-webhook-to-kill-polling")
     except Exception as e:
-        print(f"⚠️ Session reset note: {e}", flush=True)
+        pass
 
     import threading
     audit_thread = threading.Thread(target=night_and_grid_audit_loop, daemon=True)
@@ -189,4 +161,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
