@@ -2,6 +2,7 @@ import telebot
 import requests
 import time
 import random
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 # ⚠️ Apna Bot Token yahan dalein
@@ -32,24 +33,42 @@ def hit_view_worker(channel_info):
         clean_username = str(channel_username).replace("@", "")
         embed_url = f"https://t.me/{clean_username}/{message_id}?embed=1"
         
+    session = requests.Session()
+    session.proxies = PROXY_DICT
+    
     headers = {
-        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,124)}.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(120,126)}.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': embed_url,
         'Connection': 'keep-alive'
     }
+    
     try:
-        r = requests.get(embed_url, proxies=PROXY_DICT, headers=headers, timeout=5)
-        if r.status_code == 200 and "views" in r.text and "Post not found" not in r.text:
-            if 'data-view="' in r.text:
-                try:
-                    token = r.text.split('data-view="')[1].split('"')[0]
-                    ajax_url = f"https://t.me/v/?v={token}"
-                    requests.get(ajax_url, proxies=PROXY_DICT, headers=headers, timeout=3)
-                except:
-                    pass
-            return True
+        # Step 1: Fire base request to catch Telegram cookies & token
+        r = session.get(embed_url, headers=headers, timeout=7)
+        if r.status_code == 200 and "views" in r.text:
+            
+            # Extracting the precise view token via regex
+            token_match = re.search(r'data-view="([^"]+)"', r.text)
+            if token_match:
+                token = token_match.group(1)
+                ajax_url = f"https://t.me/v/?v={token}"
+                
+                # Step 2: Injecting required Telegram sub-headers to trick internal validation
+                ajax_headers = headers.copy()
+                ajax_headers.update({
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': '*/*',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin'
+                })
+                
+                # Step 3: Triggering the final dynamic view credit endpoint
+                res = session.get(ajax_url, headers=ajax_headers, timeout=5)
+                if res.status_code == 200 and (res.text == "true" or res.text == ""):
+                    return True
     except:
         pass
     return False
@@ -59,8 +78,10 @@ def fire_percentage_chunk(target_identifier, message_id, is_private, volume, wor
         return 0
     channel_info = (target_identifier, message_id, is_private)
     success_count = 0
+    
+    # We increase pool factor slightly to ensure targeted hits clear the proxy gateway
     with ThreadPoolExecutor(max_workers=worker_threads) as executor:
-        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(int(volume * 4))]
+        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(int(volume * 5))]
         for fut in futures:
             if fut.result():
                 success_count += 1
@@ -86,18 +107,18 @@ def handle_incoming_signal(message):
         'latest_id': message_id
     }
     
-    print(f"📡 [NEW POST DETECTED] Subs: {sub_count} | Target: {total_target_views} views", flush=True)
+    print(f"📡 [NEW POST] Subs: {sub_count} | Target: {total_target_views} views", flush=True)
     
-    # ⏳ 10s Stamp (0.5%)
-    p1_volume = max(2, int(total_target_views * 0.005))
-    sent_p1 = fire_percentage_chunk(target_identifier, message_id, is_private, p1_volume, worker_threads=10)
-    print(f"⏱️ [10s Stamp] Pushed burst (+{sent_p1} views)", flush=True)
-    time.sleep(15)
+    # ⏳ 10s Fast Burst
+    p1_volume = max(3, int(total_target_views * 0.008))
+    sent_p1 = fire_percentage_chunk(target_identifier, message_id, is_private, p1_volume, worker_threads=12)
+    print(f"⏱️ [10s Burst] Pushed (+{sent_p1} views)", flush=True)
+    time.sleep(12)
     
-    # ⏳ 30s Stamp (1%)
-    p2_volume = max(3, int(total_target_views * 0.01))
-    sent_p2 = fire_percentage_chunk(target_identifier, message_id, is_private, p2_volume, worker_threads=15)
-    print(f"⏱️ [30s Stamp] Pushed momentum (+{sent_p2} views)", flush=True)
+    # ⏳ 30s Scale-up
+    p2_volume = max(4, int(total_target_views * 0.015))
+    sent_p2 = fire_percentage_chunk(target_identifier, message_id, is_private, p2_volume, worker_threads=18)
+    print(f"⏱️ [30s Scale] Pushed (+{sent_p2} views)", flush=True)
     
     track_key = f"{chat_id}_{message_id}"
     delivered_views_tracker[track_key] = sent_p1 + sent_p2
@@ -125,30 +146,28 @@ def night_and_grid_audit_loop():
                     if current_done >= calculated_cap:
                         continue
                         
-                    chunk_size = random.randint(20, 45)
+                    chunk_size = random.randint(25, 50)
                     if current_done + chunk_size > calculated_cap:
                         chunk_size = calculated_cap - current_done
                         
                     sent = fire_percentage_chunk(target_id, msg_id, is_private, chunk_size, worker_threads=15)
                     delivered_views_tracker[track_key] = current_done + sent
                     print(f"📊 [Grid Sync] Msg {msg_id} -> Status: [{delivered_views_tracker[track_key]}/{calculated_cap}]", flush=True)
-                    time.sleep(3)
+                    time.sleep(4)
         except Exception as e:
             print(f"⚠️ Grid error: {e}", flush=True)
-        time.sleep(15)
+        time.sleep(20)
 
 def main():
     print("======================================================", flush=True)
-    print("🤖 ULTRA BOT ENGINE v6.0 (Zero-Polling Anti-Conflict LIVE)", flush=True)
+    print("🤖 ULTRA BOT ENGINE v7.0 (Session-Emulated Core Live)", flush=True)
     print("======================================================", flush=True)
     
-    # FORCED RESET: Removing previous webhooks and clearing old stuck polling logs
     try:
         bot.remove_webhook()
         time.sleep(2)
-        # Setting a fake webhook fixes conflict 409 forever by shutting down internal polling mechanics
         bot.set_webhook(url="https://localhost/fake-webhook-to-kill-polling")
-        print("🧹 Successfully applied dynamic anti-conflict block.", flush=True)
+        print("🧹 Dynamic anti-conflict patch maintained.", flush=True)
     except Exception as e:
         print(f"⚠️ Session reset note: {e}", flush=True)
 
@@ -156,10 +175,8 @@ def main():
     audit_thread = threading.Thread(target=night_and_grid_audit_loop, daemon=True)
     audit_thread.start()
     
-    # Keeps script running seamlessly without any crash-prone loop
     while True:
         try:
-            # We fetch updates manually inside a try-catch pattern to protect the server runtime
             updates = bot.get_updates(offset=-1, timeout=10)
             if updates:
                 bot.process_new_updates(updates)
