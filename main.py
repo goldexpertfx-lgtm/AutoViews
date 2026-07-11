@@ -3,227 +3,227 @@ import requests
 import time
 import random
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 BOT_TOKEN = "8385538981:AAFiFcdmvuSUr7G_JqWt67fy2EMkkiCmwdU"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 🚀 Apni Premium Rotating Proxy ka details yahan set karein
-PREMIUM_PROXY = "http://USER:PASSWORD@ROTATING-ENDPOINT.com:8000"
-PROXY_DICT = {"http": PREMIUM_PROXY, "https": PREMIUM_PROXY}
+active_channels = {}
+processed_posts = {}
 
-channel_configs = {}
-delivered_views_tracker = {}
-active_threads = {}
+# Premium desktop aur mobile user agents ka pool taaki Telegram server ko sab genuine lage
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
+]
 
-def get_channel_subscriber_count(chat_id):
+def get_real_sub_count(chat_id):
     try:
         count = bot.get_chat_member_count(chat_id)
-        return count if count > 0 else 1000
+        return count if count > 0 else 100
     except:
-        return random.randint(950, 1100)
+        return random.randint(95, 125)
 
-def verify_post_exists(channel_username, message_id, is_private):
-    """Detects if a post is deleted to instantly stop hitting"""
-    if is_private or str(channel_username).startswith("-100"):
-        clean_id = str(channel_username).replace("-100", "")
-        url = f"https://t.me/c/{clean_id}/{message_id}"
+def is_post_alive(target, msg_id, is_private):
+    if is_private or str(target).startswith("-100"):
+        clean_id = str(target).replace("-100", "")
+        url = f"https://t.me/c/{clean_id}/{msg_id}"
     else:
-        clean_username = str(channel_username).replace("@", "")
-        url = f"https://t.me/{clean_username}/{message_id}"
+        clean_username = str(target).replace("@", "")
+        url = f"https://t.me/{clean_username}/{msg_id}"
     try:
-        r = requests.head(url, timeout=3)
-        if r.status_code == 404:
-            return False
+        r = requests.head(url, timeout=2)
+        return r.status_code != 404
     except:
-        pass
-    return True
+        return True
 
-def hit_view_worker(channel_info):
-    channel_username, message_id, is_private = channel_info
-    
-    # Live Check: Agar post delete ho chuki hai toh worker stop
-    if not verify_post_exists(channel_username, message_id, is_private):
+def fire_free_simulation_view(target, msg_id, is_private):
+    """Simulates real client connections using header randomization"""
+    if not is_post_alive(target, msg_id, is_private):
         return "DELETED"
-
-    if is_private or str(channel_username).startswith("-100"):
-        clean_id = str(channel_username).replace("-100", "")
+        
+    if is_private or str(target).startswith("-100"):
+        clean_id = str(target).replace("-100", "")
         embed_url = f"https://t.me/c/{clean_id}/{message_id}?embed=1"
     else:
-        clean_username = str(channel_username).replace("@", "")
-        embed_url = f"https://t.me/{clean_username}/{message_id}?embed=1"
-        
+        clean_username = str(target).replace("@", "")
+        embed_url = f"https://t.me/{clean_username}/{msg_id}?embed=1"
+
     session = requests.Session()
-    session.proxies = PROXY_DICT
     
+    # Har request par dynamic identity generator
     headers = {
-        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(124,126)}.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Connection': 'keep-alive'
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': random.choice(['en-US,en;q=0.5', 'en-GB,en;q=0.6', 'en-CA,en;q=0.7']),
+        'Connection': 'keep-alive',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none'
     }
     
     try:
-        r = session.get(embed_url, headers=headers, timeout=5)
+        r = session.get(embed_url, headers=headers, timeout=4)
         if r.status_code == 200:
             token_match = re.search(r'data-view="([^"]+)"', r.text)
             if token_match:
                 token = token_match.group(1)
+                
+                # AJAX Token Handshake Simulation
                 ajax_headers = {
                     'User-Agent': headers['User-Agent'],
                     'Accept': '*/*',
                     'Referer': embed_url,
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Connection': 'keep-alive'
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin'
                 }
                 res = session.get(f"https://t.me/v/?v={token}", headers=ajax_headers, timeout=4)
-                if res.status_code == 200:
+                if res.status_code == 200 and "true" in res.text.lower():
                     return "SUCCESS"
     except:
         pass
     return "FAILED"
 
-def execute_drip_feed(target_id, message_id, is_private, total_needed, pool_key):
-    channel_info = (target_id, message_id, is_private)
-    
-    # ⏱️ Phase 1: Pehle 10 Seconds mein bilkul normal 0.5% views
-    p1_vol = max(1, int(total_needed * 0.005))
-    fire_chunk(channel_info, p1_vol)
-    time.sleep(random.randint(8, 12))
-    
-    # ⏱️ Phase 2: Agle 15-30 Seconds mein mazeed 1% views
-    if not verify_post_exists(target_id, message_id, is_private): return
-    p2_vol = max(1, int(total_needed * 0.01))
-    fire_chunk(channel_info, p2_vol)
-    time.sleep(random.randint(15, 25))
-    
-    # ⏱️ Phase 3: Baqi bache hue 10%-14% views natural smooth scheduling ke sath
-    remaining = total_needed - (p1_vol + p2_vol)
-    while remaining > 0:
-        if not verify_post_exists(target_id, message_id, is_private):
-            print(f"🛑 [STOPPED] Post {message_id} deleted by user. Target cancelled.", flush=True)
-            break
-            
-        chunk = random.randint(2, 7)
-        if chunk > remaining: chunk = remaining
-        
-        delivered = fire_chunk(channel_info, chunk)
-        delivered_views_tracker[pool_key] = delivered_views_tracker.get(pool_key, 0) + delivered
-        remaining -= chunk
-        
-        # Random interval between hits to mimic real users scrolling
-        time.sleep(random.uniform(5.0, 15.0))
-
-def fire_chunk(channel_info, volume):
+def deliver_simulated_chunk(target, msg_id, is_private, size):
     success = 0
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(volume * 2)]
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = [executor.submit(fire_free_simulation_view, target, msg_id, is_private) for _ in range(size * 2)]
         for fut in futures:
             res = fut.result()
             if res == "DELETED":
-                return success
+                return "STOP"
             if res == "SUCCESS":
                 success += 1
-                if success >= volume: break
+                if success >= size: break
     return success
 
+def human_speed_drip_pipeline(target, msg_id, is_private, total_target, post_key):
+    if not is_post_alive(target, msg_id, is_private): return
+
+    # ⏱️ 0-10 Seconds: First Split Instant Burst (0.5%)
+    p1_vol = max(1, int(total_target * 0.005))
+    res = deliver_simulated_chunk(target, msg_id, is_private, p1_vol)
+    if res == "STOP": return
+    processed_posts[post_key] = processed_posts.get(post_key, 0) + (res if isinstance(res, int) else p1_vol)
+    time.sleep(random.uniform(8.0, 12.0))
+    
+    # ⏱️ 15-30 Seconds: Next Flow Wave (1.0%)
+    if not is_post_alive(target, msg_id, is_private): return
+    p2_vol = max(1, int(total_target * 0.01))
+    res = deliver_simulated_chunk(target, msg_id, is_private, p2_vol)
+    if res == "STOP": return
+    processed_posts[post_key] = processed_posts.get(post_key, 0) + (res if isinstance(res, int) else p2_vol)
+    
+    # ⏱️ Rest Organic Drip Distribution
+    remaining = total_target - processed_posts[post_key]
+    while remaining > 0:
+        if not is_post_alive(target, msg_id, is_private):
+            break
+            
+        chunk = random.randint(1, 4) # Small natural batches for free simulation
+        if chunk > remaining: chunk = remaining
+        
+        res = deliver_simulated_chunk(target, msg_id, is_private, chunk)
+        if res == "STOP": break
+        
+        processed_posts[post_key] = processed_posts.get(post_key, 0) + res
+        remaining -= res
+        time.sleep(random.uniform(10.0, 30.0))
+
 @bot.channel_post_handler(func=lambda message: True)
-def handle_live_signals(message):
+def monitor_incoming_posts(message):
     chat_id = message.chat.id
-    message_id = message.message_id
+    msg_id = message.message_id
     is_private = True if message.chat.username is None else False
-    target_id = chat_id if is_private else message.chat.username
+    target = chat_id if is_private else message.chat.username
     
-    sub_count = get_channel_subscriber_count(chat_id)
-    
-    # Dynamic Scaling Matrix (Bilkul professional proportion)
-    daily_ratio = random.uniform(10.0, 15.0) / 100.0
-    total_target = int(sub_count * daily_ratio)
-    if total_target < 1: total_target = 1
-    
-    pool_key = f"{chat_id}_{message_id}"
-    delivered_views_tracker[pool_key] = 0
-    
-    channel_configs[chat_id] = {
-        'target_id': target_id,
+    sub_count = get_real_sub_count(chat_id)
+    active_channels[chat_id] = {
+        'target': target,
         'is_private': is_private,
-        'sub_count': sub_count,
-        'latest_id': message_id
+        'subs': sub_count,
+        'last_msg_id': msg_id
     }
     
-    print(f"📡 [SMART ENGINE v15] Channel Subs: {sub_count} -> Target Set: {total_target} Views (Proportional)", flush=True)
+    ratio = random.uniform(10.5, 14.5) / 100.0
+    total_target = int(sub_count * ratio)
+    if total_target < 1: total_target = 1
     
-    # Multi-threaded async scheduling for human emulation
-    import threading
-    t = threading.Thread(target=execute_drip_feed, args=(target_id, message_id, is_private, total_target, pool_key))
+    post_key = f"{chat_id}_{msg_id}"
+    processed_posts[post_key] = 0
+    
+    print(f"🎯 [v17 Free Simulation] Subs: {sub_count} | Target: {total_target} Views Locked.")
+    
+    t = threading.Thread(target=human_speed_drip_pipeline, args=(target, msg_id, is_private, total_target, post_key))
     t.start()
 
-def night_audit_and_yesterday_sync_loop():
+def global_night_audit_and_yesterday_sync():
     while True:
         try:
             current_hour = time.localtime().tm_hour
-            # 🌙 Raat 12 baje se subah 7 baje tak activity slow or steady rakhein
-            is_night = True if (current_hour >= 0 or current_hour <= 7) else False
+            is_market_sleep = True if (current_hour >= 0 and current_hour <= 7) else False
             
-            for chat_id, config in list(channel_configs.items()):
-                latest_id = config['latest_id']
-                sub_count = config['sub_count']
-                target_id = config['target_id']
-                is_private = config['is_private']
+            for chat_id, meta in list(active_channels.items()):
+                last_id = meta['last_msg_id']
+                subs = meta['subs']
+                target = meta['target']
+                is_private = meta['is_private']
                 
-                # Yesterday & Active grid scanning (Last 3 posts check)
-                for msg_id in range(max(1, latest_id - 3), latest_id + 1):
-                    pool_key = f"{chat_id}_{msg_id}"
+                for historical_id in range(max(1, last_id - 3), last_id + 1):
+                    key = f"{chat_id}_{historical_id}"
                     
-                    # Target assignment based on age of the post
-                    if msg_id == latest_id:
-                        ratio = random.uniform(10, 15) / 100.0 # Current day ratio
+                    if historical_id == last_id:
+                        cap_ratio = random.uniform(10.0, 15.0) / 100.0
                     else:
-                        ratio = random.uniform(20, 25) / 100.0 # Yesterday's boost ratio
+                        cap_ratio = random.uniform(20.0, 25.0) / 100.0 # Old posts scaled to 20-25%
                         
-                    calculated_cap = int(sub_count * ratio)
-                    current_done = delivered_views_tracker.get(pool_key, 0)
+                    max_allowed_views = int(subs * cap_ratio)
+                    current_views = processed_posts.get(key, 0)
                     
-                    if current_done >= calculated_cap:
+                    if current_views >= max_allowed_views:
                         continue
                         
-                    if is_night:
-                        # Raat ke waqt extra slow drip taaki pattern natural lage
-                        chunk_size = random.randint(1, 3)
-                        time_wait = random.randint(30, 60)
+                    if is_market_sleep:
+                        chunk = random.randint(1, 2)
+                        delay = random.randint(60, 120)
                     else:
-                        chunk_size = random.randint(5, 12)
-                        time_wait = random.randint(10, 20)
+                        chunk = random.randint(2, 5)
+                        delay = random.randint(25, 50)
                         
-                    if verify_post_exists(target_id, msg_id, is_private):
-                        sent = fire_chunk((target_id, msg_id, is_private), chunk_size)
-                        delivered_views_tracker[pool_key] = current_done + sent
-                        print(f"📊 [Routine Sync] Msg {msg_id} Status: [{delivered_views_tracker[pool_key]}/{calculated_cap}]", flush=True)
+                    if is_post_alive(target, historical_id, is_private):
+                        res = deliver_simulated_chunk(target, historical_id, is_private, chunk)
+                        if res != "STOP":
+                            processed_posts[key] = current_views + res
                     
-                    time.sleep(time_wait)
+                    time.sleep(delay)
         except:
             pass
-        time.sleep(40)
+        time.sleep(60)
 
 def main():
-    print("======================================================", flush=True)
-    print("🤖 ULTRA BOT ENGINE v15.0 (Smart Human Emulation Live)", flush=True)
-    print("======================================================", flush=True)
-    
     try:
         bot.remove_webhook()
         time.sleep(1)
-        bot.set_webhook(url="https://localhost/fake-webhook-to-kill-polling")
+        bot.set_webhook(url="https://localhost/fake-webhook-v17")
     except:
         pass
 
-    import threading
-    audit_thread = threading.Thread(target=night_audit_and_yesterday_sync_loop, daemon=True)
-    audit_thread.start()
+    audit_worker = threading.Thread(target=global_night_audit_and_yesterday_sync, daemon=True)
+    audit_worker.start()
+    
+    print("==========================================================")
+    print("👑 FREE SIMULATION ENGINE v17 ACTIVATED (NO PROXY/PANEL)")
+    print("==========================================================")
     
     while True:
         try:
-            updates = bot.get_updates(offset=-1, timeout=10)
+            updates = bot.get_updates(offset=-1, timeout=12)
             if updates:
                 bot.process_new_updates(updates)
         except:
