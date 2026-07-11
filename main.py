@@ -9,21 +9,19 @@ from concurrent.futures import ThreadPoolExecutor
 BOT_TOKEN = "8385538981:AAFiFcdmvuSUr7G_JqWt67fy2EMkkiCmwdU"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Fallback Backups: Agar paid proxy block ho, toh yeh public pool se automatically live IPs uthayega
 fallback_proxies = []
 
 def refresh_public_proxy_pool():
     global fallback_proxies
     try:
-        # Fetching fresh socks4/http proxies dynamically
-        res = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=3000&country=all&ssl=all&anonymity=all", timeout=10)
+        # TRADING SPEED UP: Fetching multiple high-speed lists
+        res = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=2000&country=all&ssl=all&anonymity=all", timeout=8)
         if res.status_code == 200 and len(res.text) > 100:
             fallback_proxies = [p.strip() for p in res.text.split("\n") if p.strip()]
-            print(f"🔄 [PROXY REFRESH] Loaded {len(fallback_proxies)} fresh public backup IPs.", flush=True)
+            print(f"🔄 [SIGNAL ENGINE] Loaded {len(fallback_proxies)} high-speed proxy pipelines.", flush=True)
     except Exception as e:
         print(f"⚠️ Proxy Scraper Note: {e}", flush=True)
 
-# Initial proxy setup
 refresh_public_proxy_pool()
 
 channel_configs = {}
@@ -34,7 +32,7 @@ def get_channel_subscriber_count(chat_id):
         count = bot.get_chat_member_count(chat_id)
         return count if count > 0 else 1000
     except:
-        return 5000
+        return 10430  # Baseline current sub count
 
 def hit_view_worker(channel_info):
     global fallback_proxies
@@ -49,30 +47,27 @@ def hit_view_worker(channel_info):
         
     session = requests.Session()
     
-    # SYSTEM SELECTION: Decides whether to route through primary or dynamic fallback pool
-    if fallback_proxies and random.random() > 0.3:
+    # 75% Load routed to rapid-fire pool for max delivery
+    if fallback_proxies and random.random() > 0.25:
         p_ip = random.choice(fallback_proxies)
         session.proxies = {"http": f"http://{p_ip}", "https": f"http://{p_ip}"}
     else:
-        # Default Webshare
         session.proxies = {"http": "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/", "https": "http://qkhaljvp:zadw5l3s9igx@p.webshare.io:80/"}
     
     headers = {
-        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(122,126)}.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(124,126)}.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': embed_url,
         'Connection': 'keep-alive'
     }
     
     try:
-        r = session.get(embed_url, headers=headers, timeout=6)
-        if r.status_code == 200 and "views" in r.text:
+        r = session.get(embed_url, headers=headers, timeout=4)
+        if r.status_code == 200:
             token_match = re.search(r'data-view="([^"]+)"', r.text)
             if token_match:
                 token = token_match.group(1)
-                ajax_url = f"https://t.me/v/?v={token}"
-                
                 ajax_headers = headers.copy()
                 ajax_headers.update({
                     'X-Requested-With': 'XMLHttpRequest',
@@ -81,25 +76,22 @@ def hit_view_worker(channel_info):
                     'Sec-Fetch-Mode': 'cors',
                     'Sec-Fetch-Site': 'same-origin'
                 })
-                
-                res = session.get(ajax_url, headers=ajax_headers, timeout=4)
+                res = session.get(f"https://t.me/v/?v={token}", headers=ajax_headers, timeout=3)
                 if res.status_code == 200:
                     return True
-            else:
-                # Debugging line to capture signature mismatch
-                print("🔍 [DEBUG] Token signature not found in HTML payload.", flush=True)
-    except Exception as e:
+    except:
         pass
     return False
 
-def fire_percentage_chunk(target_identifier, message_id, is_private, volume, worker_threads=20):
+def fire_percentage_chunk(target_identifier, message_id, is_private, volume, worker_threads=40):
     if volume <= 0:
         return 0
     channel_info = (target_identifier, message_id, is_private)
     success_count = 0
     
+    # TRADING MODE multiplier to push harder
     with ThreadPoolExecutor(max_workers=worker_threads) as executor:
-        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(int(volume * 4))]
+        futures = [executor.submit(hit_view_worker, channel_info) for _ in range(int(volume * 6))]
         for fut in futures:
             if fut.result():
                 success_count += 1
@@ -115,8 +107,10 @@ def handle_incoming_signal(message):
     target_identifier = chat_id if is_private else message.chat.username
     
     sub_count = get_channel_subscriber_count(chat_id)
-    daily_target_percent = random.uniform(10.0, 15.0) / 100.0
-    total_target_views = max(15, int(sub_count * daily_target_percent))
+    
+    # Trading channels usually get 30% to 40% active views of total subscribers instantly
+    trading_target_percent = random.uniform(30.0, 42.0) / 100.0
+    total_target_views = int(sub_count * trading_target_percent)
     
     channel_configs[chat_id] = {
         'target_identifier': target_identifier,
@@ -125,11 +119,12 @@ def handle_incoming_signal(message):
         'latest_id': message_id
     }
     
-    print(f"📡 [NEW POST DETECTED] Subs: {sub_count} | Target: {total_target_views}", flush=True)
+    print(f"📡 [TRADING SIGNAL DETECTED] Target Views: {total_target_views}", flush=True)
     
-    p1_volume = max(3, int(total_target_views * 0.01))
-    sent_p1 = fire_percentage_chunk(target_identifier, message_id, is_private, p1_volume, worker_threads=15)
-    print(f"⏱️ [10s Burst] Pushed (+{sent_p1} views)", flush=True)
+    # 🔥 Instant Burst: Fires 35% of total target views within first 5 seconds
+    p1_volume = int(total_target_views * 0.35)
+    sent_p1 = fire_percentage_chunk(target_identifier, message_id, is_private, p1_volume, worker_threads=50)
+    print(f"⚡ [INSTANT SIGNAL BURST] Sent (+{sent_p1} views) immediately!", flush=True)
     
     track_key = f"{chat_id}_{message_id}"
     delivered_views_tracker[track_key] = sent_p1
@@ -139,7 +134,7 @@ def night_and_grid_audit_loop():
     while True:
         try:
             proxy_timer += 1
-            if proxy_timer >= 15:  # Every ~5 minutes, refresh the fallback pool
+            if proxy_timer >= 10:
                 refresh_public_proxy_pool()
                 proxy_timer = 0
                 
@@ -149,31 +144,32 @@ def night_and_grid_audit_loop():
                 target_id = config['target_identifier']
                 is_private = config['is_private']
                 
+                # Maintain grid sync for last 3 trading posts
                 for msg_id in range(max(1, latest_id - 2), latest_id + 1):
                     track_key = f"{chat_id}_{msg_id}"
-                    calculated_cap = max(20, int(sub_count * (random.uniform(10, 15) / 100.0)))
+                    calculated_cap = int(sub_count * (random.uniform(30, 45) / 100.0))
                     current_done = delivered_views_tracker.get(track_key, 0)
                     
                     if current_done >= calculated_cap:
                         continue
                         
-                    chunk_size = random.randint(15, 30)
-                    sent = fire_percentage_chunk(target_id, msg_id, is_private, chunk_size, worker_threads=10)
+                    chunk_size = random.randint(40, 80)
+                    sent = fire_percentage_chunk(target_id, msg_id, is_private, chunk_size, worker_threads=35)
                     delivered_views_tracker[track_key] = current_done + sent
-                    print(f"📊 [Grid Sync] Msg {msg_id} -> Status: [{delivered_views_tracker[track_key]}/{calculated_cap}]", flush=True)
-                    time.sleep(5)
+                    print(f"📊 [Trading Grid Sync] Msg {msg_id} -> Status: [{delivered_views_tracker[track_key]}/{calculated_cap}]", flush=True)
+                    time.sleep(3)
         except Exception as e:
-            print(f"⚠️ Grid loop error: {e}", flush=True)
-        time.sleep(20)
+            print(f"⚠️ Grid error: {e}", flush=True)
+        time.sleep(15)
 
 def main():
     print("======================================================", flush=True)
-    print("🤖 ULTRA BOT ENGINE v8.0 (Dynamic Proxy Core Live)", flush=True)
+    print("🤖 ULTRA BOT ENGINE v9.0 (High-Speed Trading Mode Live)", flush=True)
     print("======================================================", flush=True)
     
     try:
         bot.remove_webhook()
-        time.sleep(2)
+        time.sleep(1)
         bot.set_webhook(url="https://localhost/fake-webhook-to-kill-polling")
     except Exception as e:
         print(f"⚠️ Session reset note: {e}", flush=True)
@@ -193,4 +189,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+    
